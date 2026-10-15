@@ -1,3 +1,7 @@
-//
-// Created by ADMIN on 14.10.2026.
-//
+#include <Arduino.h>
+
+void setup() {
+}
+
+void loop() {
+}

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="eng">
+<head>
+    <meta charset="UTF-8">
+    <title>CORDON // Tactical Monitoring</title>
+    <link rel="stylesheet" href="static/css/leaflet.css" />
+    <link rel="stylesheet" href="static/css/style.css" />
+</head>
+<body>
+
+<div class="hud-panel">
+    <div class="hud-title">SYSTEM «CORDON»</div>
+    <div>NETWORK STATUS: <span id="system-status" class="status-badge">MONITORING</span></div>
+    <div style="margin-top: 10px;">LAST EVENT:</div>
+    <div id="event-desc" style="color: #8899a6; font-size: 12px; margin-top: 4px;">No active threats</div>
+
+    <div style="margin-top: 14px; font-weight: bold; font-size: 12px;">EVENT LOG:</div>
+    <div class="log-box" id="event-log"></div>
+</div>
+
+<div id="map"></div>
+
+<script src="static/js/leaflet.js"></script>
+<script src="static/js/app.js"></script>
+</body>
+</html>

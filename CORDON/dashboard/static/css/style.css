@@ -1,0 +1,68 @@
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #0f1115;
+    font-family: 'Consolas', 'Courier New', monospace;
+    color: #e0e6ed;
+    overflow: hidden;
+}
+
+#map {
+    height: 100vh;
+    width: 100vw;
+}
+
+
+.hud-panel {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 320px;
+    background: rgba(16, 22, 34, 0.92);
+    border: 1px solid #2a3b5c;
+    border-radius: 4px;
+    padding: 16px;
+    z-index: 1000;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+}
+
+.hud-title {
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    color: #4a90e2;
+    border-bottom: 1px solid #2a3b5c;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    font-size: 12px;
+    border-radius: 2px;
+    font-weight: bold;
+    background: #1b382b;
+    color: #00ff66;
+}
+
+.status-alarm {
+    background: #5c1818 !important;
+    color: #ff3333 !important;
+    animation: blink 0.8s infinite alternate;
+}
+
+@keyframes blink {
+    from { opacity: 0.6; }
+    to { opacity: 1; }
+}
+
+.log-box {
+    margin-top: 12px;
+    max-height: 180px;
+    overflow-y: auto;
+    font-size: 11px;
+    background: #090c10;
+    border: 1px solid #1f2735;
+    padding: 8px;
+}
