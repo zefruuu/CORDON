@@ -14,9 +14,23 @@
     <div style="margin-top: 10px;">LAST EVENT:</div>
     <div id="event-desc" style="color: #8899a6; font-size: 12px; margin-top: 4px;">No active threats</div>
 
+    <div style="margin-top: 14px; font-weight: bold; font-size: 12px;">SENSOR DEPLOYMENT:</div>
+    <div class="coord-inputs">
+        <input id="input-lat" type="number" step="0.0001" placeholder="Lat (50.4501)" class="tactical-input" />
+        <input id="input-lng" type="number" step="0.0001" placeholder="Lon (30.5234)" class="tactical-input" />
+        <input id="input-rad" type="number" min="5" max="10" value="7" title="Radius (5-10m)" class="tactical-input tactical-input-sm" />
+    </div>
+    <div class="hud-controls">
+        <button id="btn-deploy-coords" class="tactical-btn">ADD BY INPUT</button>
+        <button id="btn-add-sensor" class="tactical-btn">+ MAP CLICK [N]</button>
+        <button id="btn-clear-sensors" class="tactical-btn tactical-btn-danger">CLEAR</button>
+    </div>
+
     <div style="margin-top: 14px; font-weight: bold; font-size: 12px;">EVENT LOG:</div>
     <div class="log-box" id="event-log"></div>
 </div>
+
+
 
 <div id="map"></div>
 

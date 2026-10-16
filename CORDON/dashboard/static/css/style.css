@@ -45,6 +45,23 @@ body {
     margin-bottom: 12px;
 }
 
+.addSensor-button {
+    display: inline-block;
+    padding: 6px 12px;
+    font-size: 12px;
+    border-radius: 2px;
+    font-weight: bold;
+    background: #1b382b;
+    color: #00ff66;
+    cursor: pointer;
+    transition: background 0.3s, color 0.3s;
+}
+
+.addSensor-button:hover {
+    background: #00ff66;
+    color: #1b382b;
+}
+
 .status-badge {
     display: inline-block;
     padding: 4px 8px;
@@ -75,3 +92,80 @@ body {
     border: 1px solid #1f2735;
     padding: 8px;
 }
+
+.coord-inputs {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+.tactical-input {
+    width: 100%;
+    background: #090c10;
+    color: #e0e6ed;
+    border: 1px solid #2a3b5c;
+    border-radius: 2px;
+    padding: 5px 6px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 11px;
+    outline: none;
+}
+
+.tactical-input:focus {
+    border-color: #4a90e2;
+}
+
+.tactical-input-sm {
+    width: 54px;
+    flex: 0 0 54px;
+    text-align: center;
+}
+
+.hud-controls {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+.tactical-btn {
+    flex: 1;
+    background: #162238;
+    color: #4a90e2;
+    border: 1px solid #2a3b5c;
+    border-radius: 2px;
+    padding: 6px 10px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 11px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.tactical-btn:hover {
+    background: #1f3252;
+    border-color: #4a90e2;
+    color: #ffffff;
+}
+
+.tactical-btn.active {
+    background: #1b382b;
+    border-color: #00ff66;
+    color: #00ff66;
+}
+
+.tactical-btn-danger {
+    flex: 0 0 auto;
+    color: #ff5555;
+    border-color: #4a2020;
+    background: #241418;
+}
+
+.tactical-btn-danger:hover {
+    background: #3d1b22;
+    border-color: #ff5555;
+    color: #ffffff;
+}
+
+.placing-cursor {
+    cursor: crosshair !important;
+}

@@ -1,11 +1,14 @@
 const MAP_CENTER = [50.4501, 30.5234];
-const MAP_ZOOM = 16;
+const MAP_ZOOM = 18;
+const DEFAULT_RADIUS = 7;
 
-const NODES_CONFIG = {
-    1: { name: "SENSOR-01 (North)", coords: [50.4520, 30.5210], radius: 60 },
-    2: { name: "SENSOR-02 (Trail)", coords: [50.4495, 30.5255], radius: 60 },
-    3: { name: "SENSOR-03 (South)", coords: [50.4478, 30.5220], radius: 60 }
+const DEFAULT_NODES = {
+    1: { name: "SENSOR-01", coords: [50.45025, 30.52315], radius: 7 },
+    2: { name: "SENSOR-02", coords: [50.45010, 30.52340], radius: 7 },
+    3: { name: "SENSOR-03", coords: [50.44995, 30.52365], radius: 7 }
 };
+
+let NODES_CONFIG = loadNodesFromStorage();
 
 const FLAG_SEISMIC = 1 << 0;
 const FLAG_RADAR   = 1 << 1;
@@ -27,24 +30,79 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
 }).addTo(map);
 
 L.tileLayer('static/tiles/{z}/{x}/{y}.png', {
-    maxZoom: 18,
+    maxZoom: 19,
     minZoom: 12,
     errorTileUrl: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
 }).addTo(map);
 
 const nodeMarkers = {};
+let isPlacementMode = false;
 
-for (const [id, node] of Object.entries(NODES_CONFIG)) {
+const statusBadge     = document.getElementById('system-status');
+const eventDesc       = document.getElementById('event-desc');
+const eventLog        = document.getElementById('event-log');
+const btnAddSensor    = document.getElementById('btn-add-sensor');
+const btnDeployCoords = document.getElementById('btn-deploy-coords');
+const btnClearNodes   = document.getElementById('btn-clear-sensors');
+const inputLat        = document.getElementById('input-lat');
+const inputLng        = document.getElementById('input-lng');
+const inputRad        = document.getElementById('input-rad');
+const mapContainer    = document.getElementById('map');
+
+inputLat.value = MAP_CENTER[0].toFixed(5);
+inputLng.value = MAP_CENTER[1].toFixed(5);
+
+function loadNodesFromStorage() {
+    try {
+        const saved = localStorage.getItem('cordon_nodes_v2');
+        if (saved) {
+            return JSON.parse(saved);
+        }
+    } catch (e) {}
+    return JSON.parse(JSON.stringify(DEFAULT_NODES));
+}
+
+function saveNodesToStorage() {
+    try {
+        localStorage.setItem('cordon_nodes_v2', JSON.stringify(NODES_CONFIG));
+    } catch (e) {}
+}
+
+function getNextSensorId() {
+    let id = 1;
+    while (NODES_CONFIG[id]) {
+        id++;
+    }
+    return id;
+}
+
+function getValidatedRadius() {
+    let r = parseFloat(inputRad.value);
+    if (isNaN(r)) r = DEFAULT_RADIUS;
+    if (r < 5) r = 5;
+    if (r > 10) r = 10;
+    inputRad.value = r;
+    return r;
+}
+
+function renderSensorNode(id, node) {
+    if (nodeMarkers[id]) {
+        map.removeLayer(nodeMarkers[id].zone);
+        map.removeLayer(nodeMarkers[id].dot);
+    }
+
+    const radius = node.radius || DEFAULT_RADIUS;
+
     const zoneCircle = L.circle(node.coords, {
         color: '#00ff66',
         fillColor: '#00ff66',
-        fillOpacity: 0.12,
+        fillOpacity: 0.18,
         weight: 1.5,
-        radius: node.radius
+        radius: radius
     }).addTo(map);
 
     const centerDot = L.circleMarker(node.coords, {
-        radius: 6,
+        radius: 5,
         color: '#ffffff',
         fillColor: '#00ff66',
         fillOpacity: 1,
@@ -54,11 +112,17 @@ for (const [id, node] of Object.entries(NODES_CONFIG)) {
     centerDot.bindPopup(`
         <div style="font-family: monospace; font-size: 12px;">
             <b>${node.name}</b><br>
-            ID: #${id}<br>
+            ID: #${id} | Radius: ${radius}m<br>
+            Coords: ${node.coords[0].toFixed(5)}, ${node.coords[1].toFixed(5)}<br>
             Status: <span id="popup-status-${id}">STANDBY</span><br>
-            BAT: <span id="popup-bat-${id}">--</span> V
+            BAT: <span id="popup-bat-${id}">--</span> V<br>
+            <span style="color:#8899a6; font-size:10px;">(Right-click dot to remove)</span>
         </div>
     `);
+
+    centerDot.on('contextmenu', () => {
+        removeSensorNode(id);
+    });
 
     nodeMarkers[id] = {
         zone: zoneCircle,
@@ -66,6 +130,149 @@ for (const [id, node] of Object.entries(NODES_CONFIG)) {
         resetTimer: null
     };
 }
+
+function createSensorAt(lat, lng) {
+    const newId = getNextSensorId();
+    const paddedId = String(newId).padStart(2, '0');
+    const radius = getValidatedRadius();
+    const coords = [lat, lng];
+
+    const newNode = {
+        name: `SENSOR-${paddedId}`,
+        coords: coords,
+        radius: radius
+    };
+
+    NODES_CONFIG[newId] = newNode;
+    saveNodesToStorage();
+    renderSensorNode(newId, newNode);
+
+    addLogEntry(
+        `Deployed ${newNode.name} (R=${radius}m) at [${lat.toFixed(5)}, ${lng.toFixed(5)}]`,
+        '#00ff66'
+    );
+}
+
+function removeSensorNode(id) {
+    const markerObj = nodeMarkers[id];
+    if (markerObj) {
+        if (markerObj.resetTimer) {
+            clearTimeout(markerObj.resetTimer);
+        }
+        map.removeLayer(markerObj.zone);
+        map.removeLayer(markerObj.dot);
+        delete nodeMarkers[id];
+    }
+    const name = NODES_CONFIG[id] ? NODES_CONFIG[id].name : `NODE-${id}`;
+    delete NODES_CONFIG[id];
+    saveNodesToStorage();
+    addLogEntry(`${name} removed from map`, '#8899a6');
+}
+
+function renderAllNodes() {
+    for (const [id, node] of Object.entries(NODES_CONFIG)) {
+        renderSensorNode(Number(id), node);
+    }
+}
+
+renderAllNodes();
+
+function setPlacementMode(active) {
+    isPlacementMode = active;
+    if (isPlacementMode) {
+        const nextId = getNextSensorId();
+        btnAddSensor.classList.add('active');
+        btnAddSensor.textContent = `CLICK MAP (#${nextId})`;
+        mapContainer.classList.add('placing-cursor');
+    } else {
+        btnAddSensor.classList.remove('active');
+        btnAddSensor.textContent = '+ MAP CLICK [N]';
+        mapContainer.classList.remove('placing-cursor');
+    }
+}
+
+btnAddSensor.addEventListener('click', () => {
+    setPlacementMode(!isPlacementMode);
+});
+
+btnDeployCoords.addEventListener('click', () => {
+    const lat = parseFloat(inputLat.value);
+    const lng = parseFloat(inputLng.value);
+    if (isNaN(lat) || isNaN(lng)) {
+        addLogEntry('Invalid coordinates input', '#ff3333');
+        return;
+    }
+    createSensorAt(lat, lng);
+    map.panTo([lat, lng], { animate: true, duration: 0.4 });
+});
+
+[inputLat, inputLng, inputRad].forEach((inputEl) => {
+    inputEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            btnDeployCoords.click();
+        }
+    });
+});
+
+document.addEventListener('keydown', (e) => {
+    if (document.activeElement.tagName === 'INPUT') return;
+    if (e.key === 'n' || e.key === 'N') {
+        setPlacementMode(!isPlacementMode);
+    } else if (e.key === 'Escape' && isPlacementMode) {
+        setPlacementMode(false);
+    }
+});
+
+btnClearNodes.addEventListener('click', () => {
+    if (Object.keys(NODES_CONFIG).length === 0) {
+        addLogEntry('No sensor nodes on map to clear', '#8899a6');
+        return;
+    }
+
+    const numA = Math.floor(Math.random() * 90) + 10;
+    const numB = Math.floor(Math.random() * 90) + 10;
+    const expectedSum = numA + numB;
+
+    const userInput = window.prompt(
+        `SECURITY CONFIRMATION: Clear all sensor nodes?\nEnter the sum to confirm: ${numA} + ${numB} = ?`
+    );
+
+    if (userInput === null) {
+        addLogEntry('Clear operation cancelled', '#8899a6');
+        return;
+    }
+
+    if (parseInt(userInput.trim(), 10) !== expectedSum) {
+        addLogEntry('Clear aborted: incorrect verification sum!', '#ff3333');
+        playTacticalBeep(300, 250, 'sawtooth');
+        return;
+    }
+
+    for (const id of Object.keys(nodeMarkers)) {
+        if (nodeMarkers[id].resetTimer) {
+            clearTimeout(nodeMarkers[id].resetTimer);
+        }
+        map.removeLayer(nodeMarkers[id].zone);
+        map.removeLayer(nodeMarkers[id].dot);
+        delete nodeMarkers[id];
+    }
+    NODES_CONFIG = {};
+    saveNodesToStorage();
+    addLogEntry('All sensor nodes cleared', '#ffcc00');
+    if (isPlacementMode) {
+        setPlacementMode(true);
+    }
+});
+
+map.on('click', (e) => {
+    inputLat.value = e.latlng.lat.toFixed(5);
+    inputLng.value = e.latlng.lng.toFixed(5);
+
+    if (!isPlacementMode) return;
+
+    createSensorAt(e.latlng.lat, e.latlng.lng);
+    setPlacementMode(false);
+});
 
 let audioCtx = null;
 
@@ -101,10 +308,6 @@ function triggerAlarmSound(isArmedIntruder) {
         playTacticalBeep(750, 200, 'square');
     }
 }
-
-const statusBadge = document.getElementById('system-status');
-const eventDesc   = document.getElementById('event-desc');
-const eventLog    = document.getElementById('event-log');
 
 function addLogEntry(text, color = '#8899a6') {
     const now = new Date();
@@ -190,7 +393,7 @@ function handleGatewayPacket(data) {
             markerObj.zone.setStyle({
                 color: '#00ff66',
                 fillColor: '#00ff66',
-                fillOpacity: 0.12
+                fillOpacity: 0.18
             });
             markerObj.dot.setStyle({
                 fillColor: '#00ff66'
