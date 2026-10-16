@@ -10,6 +10,15 @@ body {
 #map {
     height: 100vh;
     width: 100vw;
+    background-color: #0b0f17;
+    background-image:
+        linear-gradient(rgba(42, 59, 92, 0.22) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(42, 59, 92, 0.22) 1px, transparent 1px);
+    background-size: 40px 40px;
+}
+
+.leaflet-tile-pane {
+    filter: invert(100%) hue-rotate(180deg) brightness(92%) contrast(90%);
 }
 
 

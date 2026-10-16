@@ -6,6 +6,9 @@
   <component name="BackendCodeEditorMiscSettings">
     <option name="/Default/Housekeeping/FeatureSuggestion/FeatureSuggestionManager/DisabledSuggesters/=SwitchToGoToActionSuggester/@EntryIndexedValue" value="true" type="bool" />
   </component>
+  <component name="BackgroundAgentGlobalSettings">
+    <option name="selectedModelId" value="auto" />
+  </component>
   <component name="CMakePresetLoader">{
   &quot;useNewFormat&quot;: true
 }</component>
@@ -24,19 +27,11 @@
     </configurations>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7c9db4c0-c8bb-4310-802d-2ebbcf7c2563" name="Changes" comment="initial commit">
-      <change afterPath="$PROJECT_DIR$/CORDON/dashboard/bridge.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CORDON/dashboard/index.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CORDON/dashboard/requirments.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CORDON/dashboard/static/css/leaflet.css" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CORDON/dashboard/static/css/style.css" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CORDON/dashboard/static/js/app.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CORDON/dashboard/static/js/leaflet.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/editor.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/editor.xml" afterDir="false" />
+    <list default="true" id="7c9db4c0-c8bb-4310-802d-2ebbcf7c2563" name="Changes" comment="feat: add initial offline map files and architecture">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/README" beforeDir="false" afterPath="$PROJECT_DIR$/CORDON/firmware/include/README" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/main.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/platformio.ini" beforeDir="false" afterPath="$PROJECT_DIR$/CORDON/firmware/platformio.ini" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CORDON/dashboard/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/CORDON/dashboard/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CORDON/dashboard/static/css/style.css" beforeDir="false" afterPath="$PROJECT_DIR$/CORDON/dashboard/static/css/style.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CORDON/dashboard/static/js/app.js" beforeDir="false" afterPath="$PROJECT_DIR$/CORDON/dashboard/static/js/app.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -45,6 +40,11 @@
   </component>
   <component name="ClangdSettings">
     <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="CopilotPersistence">
+    <persistenceIdMap>
+      <entry key="_C:/Users/ADMIN/Desktop/MAN2026" value="3KjkFNOp77hoaD3AUH2QdAuJUpN" />
+    </persistenceIdMap>
   </component>
   <component name="ExecutionTargetManager" SELECTED_TARGET="CMakeBuildProfile:Debug" />
   <component name="FileTemplateManagerImpl">
@@ -100,6 +100,7 @@
   "keyToString": {
     "CidrDebugProfileConversion": "true",
     "DefaultHtmlFileTemplate": "HTML File",
+    "JavaScript Debug.index.html.executor": "Run",
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.RadMigrateCodeStyle": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
@@ -127,12 +128,26 @@
   </component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\ADMIN\Desktop\MAN2026\CORDON\dashboard\static\titles" />
       <recent name="C:\Users\ADMIN\Desktop\MAN2026\CORDON" />
       <recent name="C:\Users\ADMIN\Desktop\MAN2026\firmware" />
       <recent name="C:\Users\ADMIN\Desktop\MAN2026\CORDON\dashboard" />
       <recent name="C:\Users\ADMIN\Desktop\MAN2026\CORDON\dashboard\static" />
-      <recent name="C:\Users\ADMIN\Desktop\MAN2026\CORDON\dashboard\static\js" />
     </key>
+  </component>
+  <component name="RunManager" selected="JavaScript Debug.index.html">
+    <configuration name="index.html" type="JavascriptDebugType" temporary="true" nameIsGenerated="true" uri="http://localhost:63342/MAN2026/CORDON/dashboard/index.html" useBuiltInWebServerPort="true">
+      <method v="2" />
+    </configuration>
+    <configuration name="app.js" type="NodeJSConfigurationType" temporary="true" nameIsGenerated="true" path-to-js-file="app.js" working-dir="$PROJECT_DIR$/CORDON/dashboard/static/js">
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="JavaScript Debug.index.html" />
+        <item itemvalue="Node.js.app.js" />
+      </list>
+    </recent_temporary>
   </component>
   <component name="SelectedDebugProfileService">{
   &quot;profileIdByStamp&quot;: [
@@ -167,7 +182,8 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="initial commit" />
-    <option name="LAST_COMMIT_MESSAGE" value="initial commit" />
+    <MESSAGE value="feat: add initial offline map files and architecture" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: add initial offline map files and architecture" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
