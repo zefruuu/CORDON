@@ -2,6 +2,11 @@ const MAP_CENTER = [50.4501, 30.5234];
 const MAP_ZOOM = 18;
 const DEFAULT_RADIUS = 7;
 
+const VALID_AUTH_HASHES = [
+    'ff90ebf765afca16',
+    '5f313254c28ae150'
+];
+
 const DEFAULT_NODES = {
     1: { name: "SENSOR-01", coords: [50.45025, 30.52315], radius: 7 },
     2: { name: "SENSOR-02", coords: [50.45010, 30.52340], radius: 7 },
@@ -9,6 +14,10 @@ const DEFAULT_NODES = {
 };
 
 let NODES_CONFIG = loadNodesFromStorage();
+let savedLogs = loadLogsFromStorage();
+let isAuthenticated = false;
+let activeSocket = null;
+let reconnectTimer = null;
 
 const FLAG_SEISMIC = 1 << 0;
 const FLAG_RADAR   = 1 << 1;
@@ -19,9 +28,10 @@ const MSG_HEARTBEAT = 1;
 const MSG_ALARM     = 2;
 const MSG_TAMPER    = 3;
 
+const savedView = loadMapViewFromStorage();
 const map = L.map('map', {
-    center: MAP_CENTER,
-    zoom: MAP_ZOOM,
+    center: savedView.center,
+    zoom: savedView.zoom,
     zoomControl: false
 });
 
@@ -44,19 +54,29 @@ const eventLog        = document.getElementById('event-log');
 const btnAddSensor    = document.getElementById('btn-add-sensor');
 const btnDeployCoords = document.getElementById('btn-deploy-coords');
 const btnClearNodes   = document.getElementById('btn-clear-sensors');
+const btnLock         = document.getElementById('btn-lock');
 const inputLat        = document.getElementById('input-lat');
 const inputLng        = document.getElementById('input-lng');
 const inputRad        = document.getElementById('input-rad');
 const mapContainer    = document.getElementById('map');
 
-inputLat.value = MAP_CENTER[0].toFixed(5);
-inputLng.value = MAP_CENTER[1].toFixed(5);
+const authOverlay     = document.getElementById('auth-overlay');
+const authForm        = document.getElementById('auth-form');
+const authLoginInput  = document.getElementById('auth-login');
+const authPassInput   = document.getElementById('auth-password');
+const authErrorBox    = document.getElementById('auth-error');
+
+inputLat.value = savedView.center[0].toFixed(5);
+inputLng.value = savedView.center[1].toFixed(5);
 
 function loadNodesFromStorage() {
     try {
-        const saved = localStorage.getItem('cordon_nodes_v2');
+        const saved = localStorage.getItem('cordon_saved_nodes');
         if (saved) {
-            return JSON.parse(saved);
+            const parsed = JSON.parse(saved);
+            if (parsed && typeof parsed === 'object') {
+                return parsed;
+            }
         }
     } catch (e) {}
     return JSON.parse(JSON.stringify(DEFAULT_NODES));
@@ -64,8 +84,170 @@ function loadNodesFromStorage() {
 
 function saveNodesToStorage() {
     try {
-        localStorage.setItem('cordon_nodes_v2', JSON.stringify(NODES_CONFIG));
+        localStorage.setItem('cordon_saved_nodes', JSON.stringify(NODES_CONFIG));
     } catch (e) {}
+    syncStateToBridge();
+}
+
+function loadLogsFromStorage() {
+    try {
+        const saved = localStorage.getItem('cordon_saved_logs');
+        if (saved) {
+            return JSON.parse(saved);
+        }
+    } catch (e) {}
+    return [];
+}
+
+function saveLogsToStorage() {
+    try {
+        if (savedLogs.length > 50) {
+            savedLogs = savedLogs.slice(0, 50);
+        }
+        localStorage.setItem('cordon_saved_logs', JSON.stringify(savedLogs));
+    } catch (e) {}
+}
+
+function loadMapViewFromStorage() {
+    try {
+        const saved = localStorage.getItem('cordon_saved_view');
+        if (saved) {
+            return JSON.parse(saved);
+        }
+    } catch (e) {}
+    return { center: MAP_CENTER, zoom: MAP_ZOOM };
+}
+
+function saveMapViewToStorage() {
+    try {
+        const center = map.getCenter();
+        const view = { center: [center.lat, center.lng], zoom: map.getZoom() };
+        localStorage.setItem('cordon_saved_view', JSON.stringify(view));
+    } catch (e) {}
+}
+
+map.on('moveend', () => {
+    if (isAuthenticated) {
+        saveMapViewToStorage();
+    }
+});
+
+function syncStateToBridge() {
+    if (activeSocket && activeSocket.readyState === WebSocket.OPEN) {
+        try {
+            activeSocket.send(JSON.stringify({
+                cmd: 'save_state',
+                nodes: NODES_CONFIG
+            }));
+        } catch (e) {}
+    }
+}
+
+function computeAuthHash(login, pass) {
+    const str = `SALT_CRD_${login.trim().toLowerCase()}::${pass}_2026`;
+    let h1 = 0xdeadbeef | 0;
+    let h2 = 0x41c6ce57 | 0;
+    for (let i = 0; i < str.length; i++) {
+        const ch = str.charCodeAt(i);
+        h1 = Math.imul(h1 ^ ch, 2654435761);
+        h2 = Math.imul(h2 ^ ch, 1597334677);
+    }
+    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+    return (h2 >>> 0).toString(16).padStart(8, '0') + (h1 >>> 0).toString(16).padStart(8, '0');
+}
+
+function clearMapLayersOnly() {
+    for (const id of Object.keys(nodeMarkers)) {
+        if (nodeMarkers[id].resetTimer) {
+            clearTimeout(nodeMarkers[id].resetTimer);
+        }
+        map.removeLayer(nodeMarkers[id].zone);
+        map.removeLayer(nodeMarkers[id].dot);
+        delete nodeMarkers[id];
+    }
+}
+
+function restoreSavedLogsToDOM() {
+    eventLog.innerHTML = '';
+    for (let i = savedLogs.length - 1; i >= 0; i--) {
+        const item = savedLogs[i];
+        const entry = document.createElement('div');
+        entry.style.color = item.color || '#8899a6';
+        entry.style.marginBottom = '4px';
+        entry.style.borderBottom = '1px solid #141a24';
+        entry.style.paddingBottom = '2px';
+        entry.innerHTML = `<span style="color:#4a90e2">[${item.time}]</span> ${item.text}`;
+        eventLog.prepend(entry);
+    }
+}
+
+function unlockTerminal(operatorName) {
+    isAuthenticated = true;
+    authErrorBox.style.display = 'none';
+    authOverlay.classList.add('hidden');
+
+    NODES_CONFIG = loadNodesFromStorage();
+    savedLogs = loadLogsFromStorage();
+    restoreSavedLogsToDOM();
+    renderAllNodes();
+
+    if (operatorName) {
+        addLogEntry(`Operator [${operatorName.toUpperCase()}] authenticated`, '#00ff66');
+    }
+    connectWebSocket();
+}
+
+function lockTerminal() {
+    isAuthenticated = false;
+    sessionStorage.removeItem('cordon_auth_ok');
+    setPlacementMode(false);
+    clearMapLayersOnly();
+    eventLog.innerHTML = '';
+    eventDesc.textContent = 'Terminal locked';
+    statusBadge.textContent = 'LOCKED';
+    statusBadge.classList.remove('status-alarm');
+
+    if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+    }
+    if (activeSocket) {
+        activeSocket.onclose = null;
+        activeSocket.close();
+        activeSocket = null;
+    }
+
+    authLoginInput.value = '';
+    authPassInput.value = '';
+    authErrorBox.style.display = 'none';
+    authOverlay.classList.remove('hidden');
+    authLoginInput.focus();
+}
+
+authForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const login = authLoginInput.value;
+    const pass  = authPassInput.value;
+    const digest = computeAuthHash(login, pass);
+
+    if (VALID_AUTH_HASHES.includes(digest)) {
+        sessionStorage.setItem('cordon_auth_ok', login.trim());
+        playTacticalBeep(1040, 120, 'sine');
+        unlockTerminal(login.trim());
+    } else {
+        authErrorBox.style.display = 'block';
+        authPassInput.value = '';
+        playTacticalBeep(240, 300, 'sawtooth');
+    }
+});
+
+btnLock.addEventListener('click', () => {
+    lockTerminal();
+});
+
+if (sessionStorage.getItem('cordon_auth_ok')) {
+    unlockTerminal(null);
 }
 
 function getNextSensorId() {
@@ -132,6 +314,7 @@ function renderSensorNode(id, node) {
 }
 
 function createSensorAt(lat, lng) {
+    if (!isAuthenticated) return;
     const newId = getNextSensorId();
     const paddedId = String(newId).padStart(2, '0');
     const radius = getValidatedRadius();
@@ -154,6 +337,7 @@ function createSensorAt(lat, lng) {
 }
 
 function removeSensorNode(id) {
+    if (!isAuthenticated) return;
     const markerObj = nodeMarkers[id];
     if (markerObj) {
         if (markerObj.resetTimer) {
@@ -170,12 +354,11 @@ function removeSensorNode(id) {
 }
 
 function renderAllNodes() {
+    clearMapLayersOnly();
     for (const [id, node] of Object.entries(NODES_CONFIG)) {
         renderSensorNode(Number(id), node);
     }
 }
-
-renderAllNodes();
 
 function setPlacementMode(active) {
     isPlacementMode = active;
@@ -192,10 +375,12 @@ function setPlacementMode(active) {
 }
 
 btnAddSensor.addEventListener('click', () => {
+    if (!isAuthenticated) return;
     setPlacementMode(!isPlacementMode);
 });
 
 btnDeployCoords.addEventListener('click', () => {
+    if (!isAuthenticated) return;
     const lat = parseFloat(inputLat.value);
     const lng = parseFloat(inputLng.value);
     if (isNaN(lat) || isNaN(lng)) {
@@ -215,6 +400,7 @@ btnDeployCoords.addEventListener('click', () => {
 });
 
 document.addEventListener('keydown', (e) => {
+    if (!isAuthenticated) return;
     if (document.activeElement.tagName === 'INPUT') return;
     if (e.key === 'n' || e.key === 'N') {
         setPlacementMode(!isPlacementMode);
@@ -224,6 +410,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 btnClearNodes.addEventListener('click', () => {
+    if (!isAuthenticated) return;
     if (Object.keys(NODES_CONFIG).length === 0) {
         addLogEntry('No sensor nodes on map to clear', '#8899a6');
         return;
@@ -248,14 +435,7 @@ btnClearNodes.addEventListener('click', () => {
         return;
     }
 
-    for (const id of Object.keys(nodeMarkers)) {
-        if (nodeMarkers[id].resetTimer) {
-            clearTimeout(nodeMarkers[id].resetTimer);
-        }
-        map.removeLayer(nodeMarkers[id].zone);
-        map.removeLayer(nodeMarkers[id].dot);
-        delete nodeMarkers[id];
-    }
+    clearMapLayersOnly();
     NODES_CONFIG = {};
     saveNodesToStorage();
     addLogEntry('All sensor nodes cleared', '#ffcc00');
@@ -265,6 +445,7 @@ btnClearNodes.addEventListener('click', () => {
 });
 
 map.on('click', (e) => {
+    if (!isAuthenticated) return;
     inputLat.value = e.latlng.lat.toFixed(5);
     inputLng.value = e.latlng.lng.toFixed(5);
 
@@ -272,6 +453,37 @@ map.on('click', (e) => {
 
     createSensorAt(e.latlng.lat, e.latlng.lng);
     setPlacementMode(false);
+});
+
+function simulateManualTrigger(flags) {
+    if (!isAuthenticated) return;
+    const ids = Object.keys(NODES_CONFIG).map(Number);
+    if (ids.length === 0) {
+        addLogEntry('Deploy at least 1 sensor on map first!', '#ffcc00');
+        return;
+    }
+    const randomId = ids[Math.floor(Math.random() * ids.length)];
+    handleGatewayPacket({
+        id: randomId,
+        type: MSG_ALARM,
+        flags: flags,
+        radar: (flags & FLAG_RADAR) ? 1 : 0,
+        metal: (flags & FLAG_METAL) ? 1 : 0,
+        bat: 3.68,
+        hops: randomId > 1 ? 1 : 0
+    });
+}
+
+document.getElementById('btn-sim-pir').addEventListener('click', () => {
+    simulateManualTrigger(FLAG_SEISMIC);
+});
+
+document.getElementById('btn-sim-bio').addEventListener('click', () => {
+    simulateManualTrigger(FLAG_SEISMIC | FLAG_RADAR);
+});
+
+document.getElementById('btn-sim-armed').addEventListener('click', () => {
+    simulateManualTrigger(FLAG_SEISMIC | FLAG_RADAR | FLAG_METAL);
 });
 
 let audioCtx = null;
@@ -321,9 +533,20 @@ function addLogEntry(text, color = '#8899a6') {
     entry.innerHTML = `<span style="color:#4a90e2">[${timeStr}]</span> ${text}`;
 
     eventLog.prepend(entry);
+
+    savedLogs.unshift({ time: timeStr, text: text, color: color });
+    saveLogsToStorage();
 }
 
 function handleGatewayPacket(data) {
+    if (!isAuthenticated) return;
+    if (data.cmd === 'load_state' && data.nodes) {
+        NODES_CONFIG = data.nodes;
+        localStorage.setItem('cordon_saved_nodes', JSON.stringify(NODES_CONFIG));
+        renderAllNodes();
+        return;
+    }
+
     const nodeId = data.id;
     const nodeInfo = NODES_CONFIG[nodeId] || { name: `NODE-${nodeId}`, coords: MAP_CENTER };
     const flags = data.flags || 0;
@@ -405,15 +628,22 @@ function handleGatewayPacket(data) {
 }
 
 function connectWebSocket() {
+    if (!isAuthenticated) return;
     const ws = new WebSocket('ws://localhost:8765');
+    activeSocket = ws;
 
     ws.onopen = () => {
+        if (!isAuthenticated) {
+            ws.close();
+            return;
+        }
         addLogEntry('Gateway link (WebSocket :8765) established', '#00ff66');
         statusBadge.textContent = 'MONITORING';
         statusBadge.classList.remove('status-alarm');
     };
 
     ws.onmessage = (event) => {
+        if (!isAuthenticated) return;
         try {
             const packet = JSON.parse(event.data);
             handleGatewayPacket(packet);
@@ -423,14 +653,13 @@ function connectWebSocket() {
     };
 
     ws.onclose = () => {
+        if (!isAuthenticated) return;
         addLogEntry('Gateway link lost. Reconnecting in 3s...', '#ffcc00');
         statusBadge.textContent = 'OFFLINE';
-        setTimeout(connectWebSocket, 3000);
+        reconnectTimer = setTimeout(connectWebSocket, 3000);
     };
 
     ws.onerror = () => {
         ws.close();
     };
 }
-
-connectWebSocket();
