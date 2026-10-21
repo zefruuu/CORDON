@@ -27,13 +27,9 @@
     </configurations>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7c9db4c0-c8bb-4310-802d-2ebbcf7c2563" name="Changes" comment="feat: added sensors module add system by clicks, and by coordinates.">
+    <list default="true" id="7c9db4c0-c8bb-4310-802d-2ebbcf7c2563" name="Changes" comment="feat: added autorization window, bridge.py">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CORDON/dashboard/bridge.py" beforeDir="false" afterPath="$PROJECT_DIR$/CORDON/dashboard/bridge.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CORDON/dashboard/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/CORDON/dashboard/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CORDON/dashboard/requirments.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CORDON/dashboard/requirments.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CORDON/dashboard/static/css/style.css" beforeDir="false" afterPath="$PROJECT_DIR$/CORDON/dashboard/static/css/style.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CORDON/dashboard/static/js/app.js" beforeDir="false" afterPath="$PROJECT_DIR$/CORDON/dashboard/static/js/app.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CORDON/firmware/platformio.ini" beforeDir="false" afterPath="$PROJECT_DIR$/CORDON/firmware/platformio.ini" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -187,7 +183,8 @@
     <MESSAGE value="feat: add initial offline map files and architecture" />
     <MESSAGE value="feat: add offline map, sensors module rendering in map." />
     <MESSAGE value="feat: added sensors module add system by clicks, and by coordinates." />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: added sensors module add system by clicks, and by coordinates." />
+    <MESSAGE value="feat: added autorization window, bridge.py" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: added autorization window, bridge.py" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
