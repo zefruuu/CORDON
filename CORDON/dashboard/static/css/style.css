@@ -261,4 +261,13 @@ body {
     font-size: 12px;
     letter-spacing: 1.5px;
 }
-
+
+
+.wipe-box {
+    border-color: #5c2020;
+    border-top: 3px solid #ff3333;
+}
+
+.wipe-header {
+    color: #ff4444;
+}

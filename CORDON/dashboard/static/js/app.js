@@ -66,6 +66,12 @@ const authLoginInput  = document.getElementById('auth-login');
 const authPassInput   = document.getElementById('auth-password');
 const authErrorBox    = document.getElementById('auth-error');
 
+const wipeOverlay     = document.getElementById('wipe-overlay');
+const wipeForm        = document.getElementById('wipe-form');
+const wipeInput       = document.getElementById('wipe-input');
+const wipeErrorBox    = document.getElementById('wipe-error');
+const btnWipeCancel   = document.getElementById('btn-wipe-cancel');
+
 inputLat.value = savedView.center[0].toFixed(5);
 inputLng.value = savedView.center[1].toFixed(5);
 
@@ -401,6 +407,10 @@ btnDeployCoords.addEventListener('click', () => {
 
 document.addEventListener('keydown', (e) => {
     if (!isAuthenticated) return;
+    if (e.key === 'Escape' && !wipeOverlay.classList.contains('hidden')) {
+        closeWipeModal();
+        return;
+    }
     if (document.activeElement.tagName === 'INPUT') return;
     if (e.key === 'n' || e.key === 'N') {
         setPlacementMode(!isPlacementMode);
@@ -409,36 +419,50 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
+function closeWipeModal() {
+    wipeOverlay.classList.add('hidden');
+    wipeInput.value = '';
+    wipeErrorBox.style.display = 'none';
+}
+
 btnClearNodes.addEventListener('click', () => {
     if (!isAuthenticated) return;
     if (Object.keys(NODES_CONFIG).length === 0) {
         addLogEntry('No sensor nodes on map to clear', '#8899a6');
         return;
     }
+    wipeInput.value = '';
+    wipeErrorBox.style.display = 'none';
+    wipeOverlay.classList.remove('hidden');
+    wipeInput.focus();
+});
 
-    const numA = Math.floor(Math.random() * 90) + 10;
-    const numB = Math.floor(Math.random() * 90) + 10;
-    const expectedSum = numA + numB;
+btnWipeCancel.addEventListener('click', () => {
+    closeWipeModal();
+    addLogEntry('Perimeter wipe cancelled', '#8899a6');
+});
 
-    const userInput = window.prompt(
-        `SECURITY CONFIRMATION: Clear all sensor nodes?\nEnter the sum to confirm: ${numA} + ${numB} = ?`
-    );
+wipeForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const val = wipeInput.value.trim();
+    const isCodeWord = computeAuthHash('cmd', val.toLowerCase()) === '7cc916567ae614a4';
+    const isOperatorKey =
+        VALID_AUTH_HASHES.includes(computeAuthHash('operator', val)) ||
+        VALID_AUTH_HASHES.includes(computeAuthHash('cordon', val));
 
-    if (userInput === null) {
-        addLogEntry('Clear operation cancelled', '#8899a6');
+    if (!isCodeWord && !isOperatorKey) {
+        wipeErrorBox.style.display = 'block';
+        wipeInput.value = '';
+        playTacticalBeep(240, 300, 'sawtooth');
         return;
     }
 
-    if (parseInt(userInput.trim(), 10) !== expectedSum) {
-        addLogEntry('Clear aborted: incorrect verification sum!', '#ff3333');
-        playTacticalBeep(300, 250, 'sawtooth');
-        return;
-    }
-
+    closeWipeModal();
     clearMapLayersOnly();
     NODES_CONFIG = {};
     saveNodesToStorage();
-    addLogEntry('All sensor nodes cleared', '#ffcc00');
+    addLogEntry('PERIMETER WIPE EXECUTED: All sensor nodes cleared', '#ffcc00');
+    playTacticalBeep(620, 140, 'sine');
     if (isPlacementMode) {
         setPlacementMode(true);
     }
