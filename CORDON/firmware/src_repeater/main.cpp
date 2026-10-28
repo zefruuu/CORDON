@@ -93,6 +93,62 @@ void setup() {
     }
 }
 
-void loop {
-    
+void loop() {
+    if (!radioReady) {
+        digitalWrite(PIN_STATUS_LED, !digitalRead(PIN_STATUS_LED));
+        delay(1000);
+        radioReady = initRadioCC1101();
+        return;
+    }
+
+    if (millis() - lastStatusMs >= 5000) {
+        lastStatusMs = millis();
+        Serial.println("[REPEATER] CC1101 ONLINE | Listening 433.92 MHz...");
+    }
+
+    if (packetReceivedFlag) {
+        packetReceivedFlag = false;
+
+        CordonPacket packet;
+        int state = radio.readData((uint8_t*)&packet, sizeof(packet));
+        if (state != RADIOLIB_ERR_NONE) {
+            Serial.printf("[REPEATER] CC1101 readData error: %d\n", state);
+            radio.startReceive();
+            return;
+        }
+
+        if (packet.crc != calcCordonCRC(packet)) {
+            Serial.printf("[REPEATER] CRC error from node %d, seq %d\n", packet.node_id, packet.seq_number);
+            radio.startReceive();
+            return;
+        }
+
+        if (isDuplicatePacket(packet.node_id, packet.seq_number)) {
+            Serial.printf("[REPEATER] Duplicate packet from node %d, seq %d\n", packet.node_id, packet.seq_number);
+            radio.startReceive();
+            return;
+        }
+
+        if (packet.hops >= CORDON_MAX_HOPS) {
+            Serial.printf("[REPEATER] Packet from node %d, seq %d has too many hops\n", packet.node_id, packet.seq_number);
+            radio.startReceive();
+            return;
+        }
+
+        Serial.printf("[REPEATER] Forwarding packet from node %d, seq %d (hop %d -> %d)\n",
+                      packet.node_id, packet.seq_number, packet.hops, packet.hops + 1);
+
+        packet.hops++;
+        packet.crc = calcCordonCRC(packet);
+
+        delay(random(10, 31));
+
+        state = radio.transmit((uint8_t*)&packet, sizeof(packet));
+        if (state != RADIOLIB_ERR_NONE) {
+            Serial.printf("[REPEATER] CC1101 transmit error: %d\n", state);
+        }
+
+        packetReceivedFlag = false;
+        radio.startReceive();
+    }
 }

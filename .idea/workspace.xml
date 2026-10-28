@@ -27,7 +27,7 @@
     </configurations>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7c9db4c0-c8bb-4310-802d-2ebbcf7c2563" name="Changes" comment="feat: implement perimeter wipe functionality with authorization">
+    <list default="true" id="7c9db4c0-c8bb-4310-802d-2ebbcf7c2563" name="Changes" comment="feat: add Repeater CC1101 initialization and packet deduplication buffer">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/CORDON/firmware/src_repeater/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/CORDON/firmware/src_repeater/main.cpp" afterDir="false" />
     </list>
@@ -178,6 +178,17 @@
     <isAutomaticReloadCMake value="true" />
     <isAutomaticBootstrapAfterUpdate value="false" />
   </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="initial commit" />
     <MESSAGE value="feat: add initial offline map files and architecture" />
@@ -186,7 +197,8 @@
     <MESSAGE value="feat: added autorization window, bridge.py" />
     <MESSAGE value="feat(firmware): implement CC1101 RF gateway and binary protocol" />
     <MESSAGE value="feat: implement perimeter wipe functionality with authorization" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: implement perimeter wipe functionality with authorization" />
+    <MESSAGE value="feat: add Repeater CC1101 initialization and packet deduplication buffer" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: add Repeater CC1101 initialization and packet deduplication buffer" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
